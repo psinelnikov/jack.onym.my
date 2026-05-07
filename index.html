@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JACK — Artista 3D</title>
+  <meta name="description" content="Portfolio de JACK, artista português contemporâneo. Obras 3D à venda.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#" class="nav__logo" data-i18n="nav.logo">JACK</a>
+      <div class="nav__links">
+        <a href="#gallery" class="nav__link" data-i18n="nav.gallery">Galeria</a>
+        <a href="#about" class="nav__link" data-i18n="nav.about">Sobre</a>
+        <button class="nav__lang" id="lang-toggle" aria-label="Switch language">
+          <span class="nav__lang-flag" id="lang-flag">🇬🇧</span>
+          <span class="nav__lang-text" id="lang-text">EN</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero" id="hero">
+    <div class="hero__content">
+      <p class="hero__tagline" data-i18n="hero.tagline">Artista Português Contemporâneo</p>
+      <h1 class="hero__title" data-i18n="hero.title">Obras que Ganham Vida</h1>
+      <p class="hero__subtitle" data-i18n="hero.subtitle">Explore esculturas digitais em três dimensões. Mova o cursor sobre as obras para descobrir novos ângulos.</p>
+      <a href="#gallery" class="btn btn--primary" data-i18n="hero.cta">Ver Galeria</a>
+    </div>
+    <div class="hero__artwork" id="hero-viewer">
+      <div class="hero__loader" id="hero-loader">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    <div class="hero__scroll-hint">
+      <span data-i18n="hero.scroll">Scroll</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+  </section>
+
+  <section class="gallery" id="gallery">
+    <div class="container">
+      <h2 class="section-title" data-i18n="gallery.title">Galeria</h2>
+      <p class="section-subtitle" data-i18n="gallery.subtitle">Clique numa obra para a explorar em 3D</p>
+      <div class="gallery__grid" id="gallery-grid">
+      </div>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="container about__inner">
+      <div class="about__image">
+        <div class="about__image-placeholder" id="about-image">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+        </div>
+      </div>
+      <div class="about__text">
+        <h2 class="section-title" data-i18n="about.title">Sobre o Artista</h2>
+        <p class="about__bio" data-i18n="about.bio1">JACK é um artista português nascido em Lisboa em 1988. A sua prática artística explora a interseção entre escultura tradicional e tecnologia digital, criando obras que existem no espaço entre o físico e o virtual.</p>
+        <p class="about__bio" data-i18n="about.bio2">Formado em Belas Artes pela Universidade de Lisboa, JACK começou a experimentar modelação 3D em 2015. Desde então, as suas obras têm sido exibidas em galerias por todo o país e internacionalmente.</p>
+        <p class="about__bio" data-i18n="about.bio3">Cada peça é concebida como uma experiência — não basta olhar. O espectador é convidado a mover-se à volta da obra, a descobrir detalhes escondidos, a sentir a presença do objeto no espaço.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span data-i18n="footer.rights">&copy; 2026 JACK. Todos os direitos reservados.</span>
+      <span data-i18n="footer.made">Feito com paixão em Lisboa</span>
+    </div>
+  </footer>
+
+  <div class="modal" id="artwork-modal">
+    <div class="modal__backdrop" id="modal-backdrop"></div>
+    <div class="modal__content">
+      <button class="modal__close" id="modal-close" aria-label="Close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="modal__viewer" id="modal-viewer">
+        <div class="hero__loader" id="modal-loader">
+          <div class="spinner"></div>
+        </div>
+      </div>
+      <div class="modal__info">
+        <h3 class="modal__title" id="modal-title"></h3>
+        <p class="modal__description" id="modal-description"></p>
+        <div class="modal__meta">
+          <span class="modal__dimensions" id="modal-dimensions"></span>
+        </div>
+        <p class="modal__hint" data-i18n="modal.hint">Mova o cursor sobre a obra para explorar</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
