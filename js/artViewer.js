@@ -1,5 +1,73 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+var _resizeListeners = [];
+var _resizeScheduled = false;
+
+var _maxContexts = isMobile ? 1 : 8;
+var _activeContexts = 0;
+var _contextQueue = [];
+function _globalResize() {
+  if (_resizeScheduled) return;
+  _resizeScheduled = true;
+  requestAnimationFrame(function() {
+    _resizeScheduled = false;
+    _resizeListeners.forEach(function(fn) { fn(); });
+  });
+}
+window.addEventListener('resize', _globalResize, { passive: true });
+
+export function createThumbnailSnapshot(glbUrl, fallbackGeometry, backgroundColor, callback) {
+  var size = 400;
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+  camera.position.z = 3;
+
+  var renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'low-power' });
+  renderer.setSize(size, size);
+  renderer.setPixelRatio(1);
+  renderer.setClearColor(backgroundColor || 0x141414);
+  renderer.toneMapping = THREE.NoToneMapping;
+
+  var ambient = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.add(ambient);
+  var key = new THREE.DirectionalLight(0xfff5e6, 1.2);
+  key.position.set(5, 5, 5);
+  scene.add(key);
+
+  function capture(model) {
+    scene.add(model);
+    renderer.render(scene, camera);
+    var dataUrl = renderer.domElement.toDataURL('image/jpeg', 0.85);
+    renderer.dispose();
+    callback(dataUrl);
+  }
+
+  if (glbUrl) {
+    var loader = new GLTFLoader();
+    loader.load(glbUrl, function(gltf) {
+      var model = gltf.scene;
+      var box = new THREE.Box3().setFromObject(model);
+      var center = box.getCenter(new THREE.Vector3());
+      var size3 = box.getSize(new THREE.Vector3());
+      var scale = 2.5 / Math.max(size3.x, size3.y, size3.z);
+      model.position.sub(center);
+      model.position.y -= size3.y * scale * 0.3;
+      model.scale.setScalar(scale);
+      capture(model);
+    }, undefined, function() {
+      var geo = new THREE.TorusKnotGeometry(0.9, 0.35, 64, 16);
+      var mat = new THREE.MeshPhongMaterial({ color: 0xc9a96e, shininess: 60 });
+      capture(new THREE.Mesh(geo, mat));
+    });
+  } else {
+    var geo = new THREE.TorusKnotGeometry(0.9, 0.35, 64, 16);
+    var mat = new THREE.MeshPhongMaterial({ color: 0xc9a96e, shininess: 60 });
+    capture(new THREE.Mesh(geo, mat));
+  }
+}
 
 export function createArtViewer(container, options) {
   options = options || {};
@@ -11,8 +79,10 @@ export function createArtViewer(container, options) {
   var zoomOnStart = options.zoomOnStart || false;
   var defaultZoom = options.defaultZoom || 3;
   var onLoad = options.onLoad || null;
+  var isThumbnail = options.isThumbnail || false;
 
-  var scene, camera, renderer, model, animationId;
+  var scene, camera, renderer, model, animationId, visibilityObserver;
+  var cancelled = false;
   var raycaster = new THREE.Raycaster();
   var mouseVec = new THREE.Vector2();
   var mouseX = 0, mouseY = 0;
@@ -30,8 +100,18 @@ export function createArtViewer(container, options) {
   var modelBaseX = 0, modelBaseY = 0;
   var targetModelX = 0, targetModelY = 0;
   var currentModelX = 0, currentModelY = 0;
+  var needsRender = true;
 
   function init() {
+    if (cancelled) return;
+    if (isThumbnail) {
+      if (_activeContexts >= _maxContexts) {
+        _contextQueue.push(init);
+        return;
+      }
+      _activeContexts++;
+    }
+
     scene = new THREE.Scene();
 
     var rect = container.getBoundingClientRect();
@@ -41,28 +121,32 @@ export function createArtViewer(container, options) {
     camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 1000);
     camera.position.z = currentZoom;
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    var useAntialias = !(isMobile && isThumbnail);
+    var maxDpr = (isMobile && isThumbnail) ? 1 : 2;
+    renderer = new THREE.WebGLRenderer({ antialias: useAntialias, alpha: false, powerPreference: isMobile ? 'low-power' : 'default' });
     renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
     renderer.setClearColor(backgroundColor);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMapping = isThumbnail ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     container.appendChild(renderer.domElement);
 
-    var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    var ambientLight = new THREE.AmbientLight(0xffffff, isThumbnail ? 0.8 : 0.5);
     scene.add(ambientLight);
 
     var keyLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
     keyLight.position.set(5, 5, 5);
     scene.add(keyLight);
 
-    var fillLight = new THREE.DirectionalLight(0xc9a96e, 0.4);
-    fillLight.position.set(-3, 2, -2);
-    scene.add(fillLight);
+    if (!isThumbnail) {
+      var fillLight = new THREE.DirectionalLight(0xc9a96e, 0.4);
+      fillLight.position.set(-3, 2, -2);
+      scene.add(fillLight);
 
-    var rimLight = new THREE.DirectionalLight(0x8888ff, 0.3);
-    rimLight.position.set(0, -3, -5);
-    scene.add(rimLight);
+      var rimLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+      rimLight.position.set(0, -3, -5);
+      scene.add(rimLight);
+    }
 
     if (glbUrl) {
       loadGLB(glbUrl);
@@ -73,13 +157,29 @@ export function createArtViewer(container, options) {
     container.addEventListener('mousemove', onMouseMove);
     container.addEventListener('mouseenter', function() { isHovering = true; });
     container.addEventListener('mouseleave', onMouseLeave);
-    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
     container.addEventListener('touchend', onMouseLeave);
     container.addEventListener('click', onToggleZoom);
 
-    window.addEventListener('resize', onResize);
+    _resizeListeners.push(onResize);
 
-    animate();
+    if (isThumbnail) {
+      visibilityObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            if (!animationId) animate();
+          } else {
+            if (animationId) {
+              cancelAnimationFrame(animationId);
+              animationId = null;
+            }
+          }
+        });
+      }, { rootMargin: '100px' });
+      visibilityObserver.observe(container);
+    } else {
+      animate();
+    }
   }
 
   function loadGLB(url) {
@@ -114,23 +214,21 @@ export function createArtViewer(container, options) {
   }
 
   function createFallbackModel() {
+    var torusSegs = (isMobile && isThumbnail) ? 64 : 128;
     var geometry;
     if (fallbackGeometry === 'sphere') {
-      geometry = new THREE.IcosahedronGeometry(1.2, 4);
+      geometry = new THREE.IcosahedronGeometry(1.2, isThumbnail ? 2 : 4);
     } else if (fallbackGeometry === 'torus') {
-      geometry = new THREE.TorusKnotGeometry(0.9, 0.35, 128, 32);
+      geometry = new THREE.TorusKnotGeometry(0.9, 0.35, torusSegs, 16);
     } else if (fallbackGeometry === 'abstract') {
       geometry = new THREE.DodecahedronGeometry(1.2, 1);
     } else {
-      geometry = new THREE.TorusKnotGeometry(0.9, 0.35, 128, 32);
+      geometry = new THREE.TorusKnotGeometry(0.9, 0.35, torusSegs, 16);
     }
 
-    var material = new THREE.MeshStandardMaterial({
-      color: 0xc9a96e,
-      metalness: 0.3,
-      roughness: 0.4,
-      flatShading: fallbackGeometry === 'abstract'
-    });
+    var material = isThumbnail
+      ? new THREE.MeshPhongMaterial({ color: 0xc9a96e, shininess: 60, flatShading: fallbackGeometry === 'abstract' })
+      : new THREE.MeshStandardMaterial({ color: 0xc9a96e, metalness: 0.3, roughness: 0.4, flatShading: fallbackGeometry === 'abstract' });
 
       model = new THREE.Mesh(geometry, material);
       model.position.y = -0.7;
@@ -159,6 +257,7 @@ export function createArtViewer(container, options) {
   }
 
   function onTouchMove(e) {
+    e.preventDefault();
     if (!e.touches.length) return;
     isHovering = true;
     var rect = container.getBoundingClientRect();
@@ -202,14 +301,21 @@ export function createArtViewer(container, options) {
     }
   }
 
+  var EPS = 0.0001;
+
   function animate() {
     animationId = requestAnimationFrame(animate);
 
-    currentZoom += (targetZoom - currentZoom) * 0.04;
-    currentModelX += (targetModelX - currentModelX) * 0.04;
-    currentModelY += (targetModelY - currentModelY) * 0.04;
+    var dzoom = (targetZoom - currentZoom) * 0.04;
+    var dmx   = (targetModelX - currentModelX) * 0.04;
+    var dmy   = (targetModelY - currentModelY) * 0.04;
+    currentZoom   += dzoom;
+    currentModelX += dmx;
+    currentModelY += dmy;
     camera.position.set(0, 0, currentZoom);
     camera.lookAt(0, 0, 0);
+
+    var changed = Math.abs(dzoom) > EPS || Math.abs(dmx) > EPS || Math.abs(dmy) > EPS;
 
     if (model) {
       model.position.x = currentModelX;
@@ -222,8 +328,10 @@ export function createArtViewer(container, options) {
         targetRotY = 0;
       }
 
-      currentRotX += (targetRotX - currentRotX) * 0.06;
-      currentRotY += (targetRotY - currentRotY) * 0.06;
+      var drx = (targetRotX - currentRotX) * 0.06;
+      var dry = (targetRotY - currentRotY) * 0.06;
+      currentRotX += drx;
+      currentRotY += dry;
 
       model.rotation.x = currentRotX;
       model.rotation.y = currentRotY;
@@ -231,10 +339,16 @@ export function createArtViewer(container, options) {
       if (autoRotate && !isHovering) {
         model.rotation.y += 0.003;
         currentRotY = model.rotation.y;
+        changed = true;
+      } else {
+        changed = changed || Math.abs(drx) > EPS || Math.abs(dry) > EPS;
       }
     }
 
-    renderer.render(scene, camera);
+    if (changed || needsRender) {
+      renderer.render(scene, camera);
+      needsRender = false;
+    }
   }
 
   function onResize() {
@@ -243,22 +357,47 @@ export function createArtViewer(container, options) {
     camera.aspect = rect.width / rect.height;
     camera.updateProjectionMatrix();
     renderer.setSize(rect.width, rect.height);
+    needsRender = true;
+  }
+
+  function pause() {
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  }
+
+  function resume() {
+    if (!animationId) animate();
   }
 
   function destroy() {
-    cancelAnimationFrame(animationId);
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null;
     container.removeEventListener('mousemove', onMouseMove);
     container.removeEventListener('mouseleave', onMouseLeave);
     container.removeEventListener('touchmove', onTouchMove);
     container.removeEventListener('touchend', onMouseLeave);
     container.removeEventListener('click', onToggleZoom);
-    window.removeEventListener('resize', onResize);
+    var idx = _resizeListeners.indexOf(onResize);
+    if (idx !== -1) _resizeListeners.splice(idx, 1);
+    if (visibilityObserver) visibilityObserver.disconnect();
 
+    cancelled = true;
     if (renderer) {
+      if (isThumbnail) _activeContexts = Math.max(0, _activeContexts - 1);
       renderer.dispose();
       if (renderer.domElement && renderer.domElement.parentNode) {
         renderer.domElement.parentNode.removeChild(renderer.domElement);
       }
+      renderer = null;
+      if (_contextQueue.length > 0) {
+        var next = _contextQueue.shift();
+        next();
+      }
+    } else {
+      var qi = _contextQueue.indexOf(init);
+      if (qi !== -1) _contextQueue.splice(qi, 1);
     }
 
     if (model) {
@@ -279,6 +418,9 @@ export function createArtViewer(container, options) {
 
   return {
     destroy: destroy,
-    resize: onResize
+    resize: onResize,
+    pause: pause,
+    resume: resume,
+    isAlive: function() { return !cancelled; }
   };
 }

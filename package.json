@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build": "esbuild js/main.js --bundle --outfile=dist/bundle.js --platform=browser --target=es2017 --minify"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}

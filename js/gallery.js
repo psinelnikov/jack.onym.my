@@ -1,4 +1,12 @@
-import { createArtViewer } from './artViewer.js';
+import { createArtViewer, createThumbnailSnapshot } from './artViewer.js';
+
+var isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+var _heroViewer = null;
+var _destroyHero = null;
+var _recreateHero = null;
+export function setHeroViewer(v) { _heroViewer = v; }
+export function setHeroCallbacks(destroy, recreate) { _destroyHero = destroy; _recreateHero = recreate; }
 
 export var artworks = [
   {
@@ -14,11 +22,11 @@ export var artworks = [
     fallback: "torus"
   },
   {
-    id: "fragmentos-de-lisboa",
-    title: { en: "Fragments of Lisbon", pt: "Fragmentos de Lisboa" },
+    id: "fragmentos-de-ericeira",
+    title: { en: "Fragments of Ericeira", pt: "Fragmentos de Ericeira" },
     description: {
-      en: "Inspired by the tiled facades of Lisbon, this piece deconstructs geometric patterns into a three-dimensional meditation on the city's visual identity.",
-      pt: "Inspirada nas fachadas azulejadas de Lisboa, esta peça desconstrói padrões geométricos numa meditação tridimensional sobre a identidade visual da cidade."
+      en: "Inspired by the whitewashed facades and wave-worn stone of Ericeira, this piece deconstructs the town's raw geometry into a three-dimensional meditation on place and memory.",
+      pt: "Inspirada nas fachadas caiadas e nas pedras desgastadas pelo mar de Ericeira, esta peça desconstrói a geometria crua da vila numa meditação tridimensional sobre o lugar e a memória."
     },
     year: "2025",
     dimensions: "55 × 40 × 40 cm",
@@ -38,11 +46,11 @@ export var artworks = [
     fallback: "sphere"
   },
   {
-    id: "eco-do-atlantico",
-    title: { en: "Echo of the Atlantic", pt: "Eco do Atlântico" },
+    id: "corpo-e-pedra",
+    title: { en: "Body and Stone", pt: "Corpo e Pedra" },
     description: {
-      en: "The ceaseless motion of ocean waves rendered as a frozen sculpture. Each ridge and valley maps the rhythm of the Portuguese coastline.",
-      pt: "O movimento incessante das ondas do mar renderizado como escultura congelada. Cada crista e vale mapeia o ritmo da costa portuguesa."
+      en: "An inquiry into the collision of organic and mineral. The work holds the tension between something that grows and something that endures.",
+      pt: "Uma indagação sobre o encontro entre o orgânico e o mineral. A obra sustém a tensão entre aquilo que cresce e aquilo que perdura."
     },
     year: "2024",
     dimensions: "60 × 35 × 25 cm",
@@ -62,11 +70,11 @@ export var artworks = [
     fallback: "abstract"
   },
   {
-    id: "silencio-azul",
-    title: { en: "Blue Silence", pt: "Silêncio Azul" },
+    id: "peso-da-ausencia",
+    title: { en: "Weight of Absence", pt: "Peso da Ausência" },
     description: {
-      en: "A meditation on stillness and depth. The deep blue tones evoke the quiet of a Portuguese night, while the form hints at something stirring beneath the surface.",
-      pt: "Uma meditação sobre o silêncio e a profundidade. Os tons azuis profundos evocam a quietude de uma noite portuguesa, enquanto a forma sugere algo a agitar-se sob a superfície."
+      en: "A hollow form that carries more presence than mass. The void at its centre is not emptiness but a space charged with what was once there.",
+      pt: "Uma forma oca que carrega mais presença do que massa. O vazio no seu centro não é ausência, mas um espaço carregado do que outrora existiu."
     },
     year: "2024",
     dimensions: "38 × 38 × 30 cm",
@@ -90,6 +98,20 @@ export var artworks = [
 var modalViewer = null;
 var currentLang = "pt";
 var cardViewers = [];
+var _scrollY = 0;
+
+function lockScroll() {
+  _scrollY = window.scrollY;
+  document.body.style.top = '-' + _scrollY + 'px';
+  document.body.classList.add('modal-open');
+}
+
+function unlockScroll() {
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, _scrollY);
+}
+
 
 export function renderGallery(lang) {
   currentLang = lang;
@@ -101,7 +123,7 @@ export function renderGallery(lang) {
 
   artworks.forEach(function(art, index) {
     var card = document.createElement("div");
-    card.className = "gallery__card fade-in";
+    card.className = "gallery__card fade-in loading";
     card.innerHTML =
       '<div class="gallery__card-thumb" data-viewer-thumb="' + index + '">' +
         '<div class="gallery__card-overlay"><span data-i18n="btn.viewIn3d">' +
@@ -117,24 +139,26 @@ export function renderGallery(lang) {
       '</div>';
 
     card.addEventListener("click", function() {
-      openModal(art, lang);
+      openModal(art, currentLang);
     });
 
     grid.appendChild(card);
 
-    setTimeout(function() {
-      var thumbContainer = card.querySelector('[data-viewer-thumb]');
-      var viewer = createArtViewer(thumbContainer, {
-        glbUrl: art.glb,
-        fallbackGeometry: art.fallback,
-        backgroundColor: 0x141414,
-        parallaxIntensity: 0.2,
-        autoRotate: true
+    var snapshotObserver = new IntersectionObserver(function(entries, obs) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        obs.disconnect();
+        var thumbContainer = card.querySelector('[data-viewer-thumb]');
+        createThumbnailSnapshot(art.glb, art.fallback, 0x141414, function(dataUrl) {
+          var img = document.createElement('img');
+          img.src = dataUrl;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          thumbContainer.appendChild(img);
+          card.classList.remove('loading');
+        });
       });
-      cardViewers.push(viewer);
-
-      card.classList.add("visible");
-    }, 100 + index * 80);
+    }, { rootMargin: '200px' });
+    snapshotObserver.observe(card);
   });
 }
 
@@ -158,7 +182,8 @@ export function openModal(art, lang) {
   dims.textContent = art.dimensions;
 
   modal.classList.add("active");
-  document.body.style.overflow = "hidden";
+  lockScroll();
+  if (_destroyHero) _destroyHero();
 
   setTimeout(function() {
     modalViewer = createArtViewer(viewer, {
@@ -179,7 +204,8 @@ export function openModal(art, lang) {
 export function closeModal() {
   var modal = document.getElementById("artwork-modal");
   modal.classList.remove("active");
-  document.body.style.overflow = "";
+  unlockScroll();
+  if (_recreateHero) _recreateHero();
 
   if (modalViewer) {
     setTimeout(function() {
@@ -191,17 +217,28 @@ export function closeModal() {
 
 export function updateGalleryLanguage(lang) {
   currentLang = lang;
+
+  artworks.forEach(function(art, index) {
+    var thumb = document.querySelector('[data-viewer-thumb="' + index + '"]');
+    if (!thumb) return;
+    var card = thumb.closest('.gallery__card');
+    if (!card) return;
+    var titleEl = card.querySelector('.gallery__card-title');
+    if (titleEl) titleEl.textContent = art.title[lang];
+    var overlaySpan = thumb.querySelector('[data-i18n="btn.viewIn3d"]');
+    if (overlaySpan) overlaySpan.textContent = lang === 'en' ? 'View in 3D' : 'Ver em 3D';
+  });
+
   var modal = document.getElementById("artwork-modal");
   if (modal.classList.contains("active")) {
-    var titleEl = document.getElementById("modal-title");
-    var descEl = document.getElementById("modal-description");
-
+    var modalTitle = document.getElementById("modal-title");
+    var modalDesc = document.getElementById("modal-description");
     var activeArt = artworks.find(function(a) {
-      return a.title["en"] === titleEl.textContent || a.title["pt"] === titleEl.textContent;
+      return a.title["en"] === modalTitle.textContent || a.title["pt"] === modalTitle.textContent;
     });
     if (activeArt) {
-      titleEl.textContent = activeArt.title[lang];
-      descEl.textContent = activeArt.description[lang];
+      modalTitle.textContent = activeArt.title[lang];
+      modalDesc.textContent = activeArt.description[lang];
     }
   }
 }

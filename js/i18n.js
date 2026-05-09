@@ -6,8 +6,8 @@ export const translations = {
   "hero.tagline":   { en: "Contemporary Portuguese Artist", pt: "Artista Português Contemporâneo" },
   "hero.title":     { en: "Art That Comes Alive", pt: "Obras que Ganham Vida" },
   "hero.subtitle":  {
-    en: "Explore digital sculptures in three dimensions. Hover over the artworks to discover new perspectives.",
-    pt: "Explore esculturas digitais em três dimensões. Mova o cursor sobre as obras para descobrir novos ângulos."
+    en: "Explore digital artwork in three dimensions. Hover over the pieces to discover new perspectives.",
+    pt: "Explore arte digital em três dimensões. Mova o cursor sobre as obras para descobrir novos ângulos."
   },
   "hero.cta":       { en: "View Gallery", pt: "Ver Galeria" },
   "hero.scroll":    { en: "Scroll", pt: "Scroll" },
@@ -17,12 +17,12 @@ export const translations = {
 
   "about.title": { en: "About the Artist", pt: "Sobre o Artista" },
   "about.bio1":  {
-    en: "JACK is a Portuguese artist born in Lisbon in 1988. His practice explores the intersection between traditional sculpture and digital technology, creating works that exist in the space between the physical and the virtual.",
-    pt: "JACK é um artista português nascido em Lisboa em 1988. A sua prática artística explora a interseção entre escultura tradicional e tecnologia digital, criando obras que existem no espaço entre o físico e o virtual."
+    en: "JACK is a Portuguese artist born in Ericeira in 1988. His practice explores the intersection between traditional sculpture and digital technology, creating works that exist in the space between the physical and the virtual.",
+    pt: "JACK é um artista português nascido em Ericeira em 1988. A sua prática artística explora a interseção entre escultura tradicional e tecnologia digital, criando obras que existem no espaço entre o físico e o virtual."
   },
   "about.bio2": {
-    en: "Graduated in Fine Arts from the University of Lisbon, JACK began experimenting with 3D modeling in 2015. Since then, his works have been exhibited in galleries across the country and internationally.",
-    pt: "Formado em Belas Artes pela Universidade de Lisboa, JACK começou a experimentar modelação 3D em 2015. Desde então, as suas obras têm sido exibidas em galerias por todo o país e internacionalmente."
+    en: "Graduated in Fine Arts from the University of Ericeira, JACK began experimenting with 3D modeling in 2015. Since then, his works have been exhibited in galleries across the country and internationally.",
+    pt: "Formado em Belas Artes pela Universidade de Ericeira, JACK começou a experimentar modelação 3D em 2015. Desde então, as suas obras têm sido exibidas em galerias por todo o país e internacionalmente."
   },
   "about.bio3": {
     en: "Each piece is conceived as an experience — looking is not enough. The viewer is invited to move around the work, to discover hidden details, to feel the presence of the object in space.",
@@ -30,7 +30,7 @@ export const translations = {
   },
 
   "footer.rights": { en: "\u00a9 2026 JACK. All rights reserved.", pt: "\u00a9 2026 JACK. Todos os direitos reservados." },
-  "footer.made":   { en: "Made with passion in Lisbon", pt: "Feito com paixão em Lisboa" },
+  "footer.made":   { en: "Made with passion in Ericeira", pt: "Feito com paixão em Ericeira" },
 
   "btn.viewIn3d":   { en: "View in 3D", pt: "Ver em 3D" },
   "btn.close":      { en: "Close",     pt: "Fechar" },
