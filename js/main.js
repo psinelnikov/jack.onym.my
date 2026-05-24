@@ -36,7 +36,9 @@ function spawnHeroViewer() {
     fallbackGeometry: artworks[0].fallback,
     backgroundColor: 0x141414,
     parallaxIntensity: 0.4,
-    autoRotate: true
+    autoRotate: true,
+    modelOffsetY: 0.3,
+    defaultZoom: 3.8
   });
   setHeroViewer(heroViewer);
 }

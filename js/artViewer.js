@@ -80,6 +80,7 @@ export function createArtViewer(container, options) {
   var defaultZoom = options.defaultZoom || 3;
   var onLoad = options.onLoad || null;
   var isThumbnail = options.isThumbnail || false;
+  var modelOffsetY = options.modelOffsetY || 0;
 
   var scene, camera, renderer, model, animationId, visibilityObserver;
   var cancelled = false;
@@ -123,10 +124,10 @@ export function createArtViewer(container, options) {
 
     var useAntialias = !(isMobile && isThumbnail);
     var maxDpr = (isMobile && isThumbnail) ? 1 : 2;
-    renderer = new THREE.WebGLRenderer({ antialias: useAntialias, alpha: false, powerPreference: isMobile ? 'low-power' : 'default' });
+    renderer = new THREE.WebGLRenderer({ antialias: useAntialias, alpha: true, premultipliedAlpha: false, powerPreference: isMobile ? 'low-power' : 'default' });
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
-    renderer.setClearColor(backgroundColor);
+    renderer.setClearColor(backgroundColor, 0);
     renderer.toneMapping = isThumbnail ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     container.appendChild(renderer.domElement);
@@ -182,6 +183,35 @@ export function createArtViewer(container, options) {
     }
   }
 
+  function applyChromaKey(object) {
+    object.traverse(function(child) {
+      if (!child.isMesh) return;
+      var mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(function(mat) {
+        mat.transparent = true;
+        mat.alphaTest = 0.5;
+        mat.side = THREE.DoubleSide;
+        mat.onBeforeCompile = function(shader) {
+          shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <alphatest_fragment>',
+            [
+              'float r = diffuseColor.r;',
+              'float g = diffuseColor.g;',
+              'float b = diffuseColor.b;',
+              'float brightness = (r + g + b) / 3.0;',
+              'float maxCh = max(r, max(g, b));',
+              'float minCh = min(r, min(g, b));',
+              'float sat = (maxCh > 0.001) ? (maxCh - minCh) / maxCh : 0.0;',
+              'if (brightness > 0.92 && sat < 0.06) { diffuseColor.a = 0.0; }',
+              '#include <alphatest_fragment>'
+            ].join('\n')
+          );
+        };
+        mat.needsUpdate = true;
+      });
+    });
+  }
+
   function loadGLB(url) {
     var loader = new GLTFLoader();
     loader.load(url, function(gltf) {
@@ -195,6 +225,7 @@ export function createArtViewer(container, options) {
 
       model.position.sub(center);
       model.position.y -= size.y * scale * 0.3;
+      model.position.y -= modelOffsetY;
       model.scale.setScalar(scale);
 
       modelBaseX = model.position.x;
@@ -204,6 +235,7 @@ export function createArtViewer(container, options) {
       currentModelX = modelBaseX;
       currentModelY = modelBaseY;
 
+      applyChromaKey(model);
       scene.add(model);
       hideLoader();
       if (onLoad) onLoad();

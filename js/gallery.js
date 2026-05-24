@@ -10,30 +10,6 @@ export function setHeroCallbacks(destroy, recreate) { _destroyHero = destroy; _r
 
 export var artworks = [
   {
-    id: "forma-primordial",
-    title: { en: "Primordial Form", pt: "Forma Primordial" },
-    description: {
-      en: "An exploration of organic shapes that evoke the origins of life. The smooth curves and golden tones suggest something ancient yet timeless.",
-      pt: "Uma exploração de formas orgânicas que evocam as origens da vida. As curvas suaves e os tons dourados sugerem algo antigo mas intemporal."
-    },
-    year: "2025",
-    dimensions: "42 × 42 × 35 cm",
-    glb: "assets/art/Scaniverse 2026-02-17 165431.glb",
-    fallback: "torus"
-  },
-  {
-    id: "fragmentos-de-ericeira",
-    title: { en: "Fragments of Ericeira", pt: "Fragmentos de Ericeira" },
-    description: {
-      en: "Inspired by the whitewashed facades and wave-worn stone of Ericeira, this piece deconstructs the town's raw geometry into a three-dimensional meditation on place and memory.",
-      pt: "Inspirada nas fachadas caiadas e nas pedras desgastadas pelo mar de Ericeira, esta peça desconstrói a geometria crua da vila numa meditação tridimensional sobre o lugar e a memória."
-    },
-    year: "2025",
-    dimensions: "55 × 40 × 40 cm",
-    glb: "assets/art/Scaniverse 2026-02-17 165803.glb",
-    fallback: "abstract"
-  },
-  {
     id: "horizonte-dourado",
     title: { en: "Golden Horizon", pt: "Horizonte Dourado" },
     description: {
@@ -92,6 +68,30 @@ export var artworks = [
     dimensions: "45 × 40 × 38 cm",
     glb: "assets/art/Scaniverse 2026-02-17 191825.glb",
     fallback: "torus"
+  },
+  {
+    id: "forma-primordial",
+    title: { en: "Primordial Form", pt: "Forma Primordial" },
+    description: {
+      en: "An exploration of organic shapes that evoke the origins of life. The smooth curves and golden tones suggest something ancient yet timeless.",
+      pt: "Uma exploração de formas orgânicas que evocam as origens da vida. As curvas suaves e os tons dourados sugerem algo antigo mas intemporal."
+    },
+    year: "2025",
+    dimensions: "42 × 42 × 35 cm",
+    glb: "assets/art/Scaniverse 2026-02-17 165431.glb",
+    fallback: "torus"
+  },
+  {
+    id: "fragmentos-de-ericeira",
+    title: { en: "Fragments of Ericeira", pt: "Fragmentos de Ericeira" },
+    description: {
+      en: "Inspired by the whitewashed facades and wave-worn stone of Ericeira, this piece deconstructs the town's raw geometry into a three-dimensional meditation on place and memory.",
+      pt: "Inspirada nas fachadas caiadas e nas pedras desgastadas pelo mar de Ericeira, esta peça desconstrói a geometria crua da vila numa meditação tridimensional sobre o lugar e a memória."
+    },
+    year: "2025",
+    dimensions: "55 × 40 × 40 cm",
+    glb: "assets/art/Scaniverse 2026-02-17 165803.glb",
+    fallback: "abstract"
   }
 ];
 
@@ -193,6 +193,7 @@ export function openModal(art, lang) {
       parallaxIntensity: 0.45,
       autoRotate: false,
       zoomOnStart: true,
+      defaultZoom: 3.6,
       onLoad: function() {
         loader.classList.add("hidden");
       }
